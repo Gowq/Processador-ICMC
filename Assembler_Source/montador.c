@@ -258,6 +258,8 @@ void DetectarLabels(void)
 	        case MOV_CODE :
             case OUTCHAR_CODE :
             case CMP_CODE :
+            case PUSHN_CODE :
+            case POPN_CODE :
                 parser_SkipUntil(',');
                 parser_SkipUntilEnd();
                 end_cnt++;
@@ -2045,6 +2047,72 @@ void MontarInstrucoes(void)
                     break;
                 
                 /* ==============
+                   PUSHN #N - empurra N registradores na pilha
+                   ==============
+                */
+
+                case PUSHN_CODE:
+                    str_tmp1 = parser_GetItem_s();
+                    parser_Match(',');
+                    str_tmp2 = parser_GetItem_s();
+                    val1 = BuscaRegistrador(str_tmp1);
+                    val2 = BuscaRegistrador(str_tmp2);
+                    free(str_tmp1);
+                    free(str_tmp2);
+
+                    // Se for um valor maior que o FR da push no fr e limita o segundo valor em 8
+                    if (FR_CODE <= val2){
+                        sprintf(str_msg,"%s0001000000",PUSH);
+                        parser_Write_Inst(str_msg,end_cnt);
+                        end_cnt += 1;
+                        val2 = 8;
+                    }
+                    // Push em todos os registradores do intervalo
+                    for(int i = val1; i < val2; i++)
+                    {
+                        str_tmp1 = ConverteRegistrador(i);
+                        sprintf(str_msg,"%s%s0000000",PUSH,str_tmp1);
+                        free(str_tmp1);
+
+                        parser_Write_Inst(str_msg,end_cnt);
+                        end_cnt += 1;
+                    }
+                    break;
+
+                /* ==============
+                   POPN #N - desempilha N registradores
+                   ==============
+                */
+
+               case POPN_CODE :
+                    str_tmp1 = parser_GetItem_s();
+                    parser_Match(',');
+                    str_tmp2 = parser_GetItem_s();
+                    val1 = BuscaRegistrador(str_tmp1);
+                    val2 = BuscaRegistrador(str_tmp2);
+                    free(str_tmp1);
+                    free(str_tmp2);
+
+                    // Se for um valor maior que o FR da pop no fr e limita o segundo valor em 8
+                    if (FR_CODE <= val2){
+                        sprintf(str_msg,"%s0001000000",POP);
+                        parser_Write_Inst(str_msg,end_cnt);
+                        end_cnt += 1;
+                        val2 = 8;
+                    }
+                    // Pop em todos os registradores do intervalo
+                    for(int i = val1; i < val2; i++)
+                    {
+                        str_tmp1 = ConverteRegistrador(val1);
+                        sprintf(str_msg,"%s%s0000000",POP,str_tmp1);
+                        free(str_tmp1);
+
+                        parser_Write_Inst(str_msg,end_cnt);
+                        end_cnt += 1;
+                    }
+                    break;
+
+                /* ==============
                    Halt
                    ==============
                 */
@@ -2621,6 +2689,14 @@ int BuscaInstrucao(char * nome)
     else if (strcmp(str_tmp,POP_STR) == 0)
     {
         return POP_CODE;
+    }
+    else if (strcmp(str_tmp, PUSHN_STR) == 0)
+    {
+        return PUSHN_CODE;
+    }
+    else if (strcmp(str_tmp, POPN_STR) == 0)
+    {
+        return POPN_CODE;
     }
     else if (strcmp(str_tmp,HALT_STR) == 0)
     {
